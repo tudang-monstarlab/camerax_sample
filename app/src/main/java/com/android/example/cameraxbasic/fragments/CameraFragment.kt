@@ -21,6 +21,7 @@ import android.content.*
 import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.hardware.camera2.CameraCharacteristics
 import android.hardware.display.DisplayManager
 import android.os.Build
 import android.os.Bundle
@@ -31,6 +32,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.annotation.RequiresApi
+import androidx.camera.camera2.interop.Camera2CameraInfo
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.concurrent.futures.await
@@ -232,13 +235,24 @@ class CameraFragment : Fragment() {
     }
 
     /** Initialize CameraX, and prepare to bind the camera use cases  */
+    @RequiresApi(Build.VERSION_CODES.M)
+    @SuppressLint("UnsafeOptInUsageError")
     private suspend fun setUpCamera() {
         cameraProvider = ProcessCameraProvider.getInstance(requireContext()).await()
 
+        val cameraSelector = CameraSelector.Builder()
+            .addCameraFilter {
+                it.filter { camInfo ->
+                    Camera2CameraInfo.from(camInfo).getCameraCharacteristic(
+                        CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL
+                    ) == CameraCharacteristics.LENS_FACING_EXTERNAL
+                }
+            }.build()
         // Select lensFacing depending on the available cameras
         lensFacing = when {
             hasBackCamera() -> CameraSelector.LENS_FACING_BACK
             hasFrontCamera() -> CameraSelector.LENS_FACING_FRONT
+            cameraProvider?.hasCamera(cameraSelector)?:false -> CameraCharacteristics.LENS_FACING_EXTERNAL
             else -> throw IllegalStateException("Back and front camera are unavailable")
         }
 
@@ -442,6 +456,7 @@ class CameraFragment : Fragment() {
     }
 
     /** Method used to re-draw the camera UI controls, called every time configuration changes. */
+    @RequiresApi(Build.VERSION_CODES.M)
     private fun updateCameraUi() {
 
         // Remove previous UI if any
@@ -530,7 +545,11 @@ class CameraFragment : Fragment() {
             }
         }
         // init camera direction
-        cameraUiContainerBinding?.cameraDirectionLbl?.text = if (lensFacing == CameraSelector.LENS_FACING_BACK) "BACK" else "FRONT"
+        cameraUiContainerBinding?.cameraDirectionLbl?.text = when(lensFacing) {
+            CameraSelector.LENS_FACING_BACK -> "BACK"
+            CameraSelector.LENS_FACING_FRONT -> "FRONT"
+            else -> "EXTERNAL"
+        }
         // Setup for button used to switch cameras
         cameraUiContainerBinding?.cameraSwitchButton?.let {
 
@@ -542,9 +561,12 @@ class CameraFragment : Fragment() {
                 lensFacing = if (CameraSelector.LENS_FACING_FRONT == lensFacing) {
                     cameraUiContainerBinding?.cameraDirectionLbl?.text = "BACK"
                     CameraSelector.LENS_FACING_BACK
-                } else {
+                } else if (CameraSelector.LENS_FACING_BACK == lensFacing) {
                     cameraUiContainerBinding?.cameraDirectionLbl?.text = "FRONT"
                     CameraSelector.LENS_FACING_FRONT
+                } else {
+                    cameraUiContainerBinding?.cameraDirectionLbl?.text = "EXTERNAL"
+                    CameraCharacteristics.LENS_FACING_EXTERNAL
                 }
                 // Re-bind use cases to update selected camera
                 bindCameraUseCases()

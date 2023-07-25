@@ -28,5 +28,5 @@ Alternatively, test running configurations can be added to Android Studio for co
 1. Optional: Give the run configuration a name, like `test robolectric` or `test device`
 
 ## Original
-This sample is derived from https://github.com/android/camera-samples
+This sample is derived from https://github.com/android/camera-samples.
 But only focus on CameraX API, for the others API and sample please refer to the above repository. 
