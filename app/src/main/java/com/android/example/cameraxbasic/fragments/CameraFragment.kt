@@ -539,8 +539,10 @@ class CameraFragment : Fragment() {
             // Listener for button used to switch cameras. Only called if the button is enabled
             it.setOnClickListener {
                 lensFacing = if (CameraSelector.LENS_FACING_FRONT == lensFacing) {
+                    cameraUiContainerBinding?.cameraDirectionLbl?.text = "BACK"
                     CameraSelector.LENS_FACING_BACK
                 } else {
+                    cameraUiContainerBinding?.cameraDirectionLbl?.text = "FRONT"
                     CameraSelector.LENS_FACING_FRONT
                 }
                 // Re-bind use cases to update selected camera
