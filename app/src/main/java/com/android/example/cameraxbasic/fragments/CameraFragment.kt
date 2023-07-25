@@ -529,7 +529,8 @@ class CameraFragment : Fragment() {
                 }
             }
         }
-
+        // init camera direction
+        cameraUiContainerBinding?.cameraDirectionLbl?.text = if (lensFacing == CameraSelector.LENS_FACING_BACK) "BACK" else "FRONT"
         // Setup for button used to switch cameras
         cameraUiContainerBinding?.cameraSwitchButton?.let {
 
